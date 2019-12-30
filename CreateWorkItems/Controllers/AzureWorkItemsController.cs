@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 using Microsoft.TeamFoundation.SourceControl.WebApi;
@@ -16,12 +17,15 @@ namespace CreateWorkItems.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    
     public class AzureWorkItemsController : ControllerBase
     {
+
         // GET api/values
         [HttpGet]
+        [ResponseCache(Duration = 60)]
         //public ActionResult<IEnumerable<WorkItem>> Get()
-        public async Task<string> Get()
+        public async Task<IActionResult> Get()
         {
             await Security.GetSecretKeys();
             VssConnection connection = null;
@@ -33,7 +37,7 @@ namespace CreateWorkItems.Controllers
             WorkItemTrackingHttpClient witClient = connection.GetClient<WorkItemTrackingHttpClient>();
             //witClient.GetWorkItemsAsync()
             var wiqlQuery = new Wiql() { Query = "Select * from WorkItems" };
-            
+
             var workItemQueryResultForWiqlBasedQuery = witClient.QueryByWiqlAsync(wiqlQuery).Result;
 
             var workItemsForQueryResultForWiqlBasedQuery = witClient
@@ -41,9 +45,9 @@ namespace CreateWorkItems.Controllers
                     workItemQueryResultForWiqlBasedQuery.WorkItems.Select(workItemReference => workItemReference.Id),
                     expand: WorkItemExpand.All).Result;
 
-            JsonConvert.SerializeObject(workItemsForQueryResultForWiqlBasedQuery, Formatting.Indented);
+            //JsonConvert.SerializeObject(workItemsForQueryResultForWiqlBasedQuery, Formatting.Indented);
 
-            return JsonConvert.SerializeObject(workItemsForQueryResultForWiqlBasedQuery, Formatting.Indented); ;
+            return StatusCode(StatusCodes.Status200OK, workItemsForQueryResultForWiqlBasedQuery);
 
         }
 
@@ -54,14 +58,13 @@ namespace CreateWorkItems.Controllers
             return message;
         }
 
-       
+
 
         [Route("api/[controller]/InsertWorkItem")]
-        [HttpGet("InsertWorkItem")]
-        public async Task<string> InsertWorkItem(string ProjectName, string Title, string AssignedTo, string Description)
+        [HttpPost("InsertWorkItem")]
+        //public async Task<string> InsertWorkItem(string ProjectName, string Title, string AssignedTo, string Description)
+        public async Task<IActionResult> InsertWorkItem([FromBody] Models.WorkItem WI)
         {
-            //string account = "https://dev.azure.com/tusharpawar";
-
             await Security.GetSecretKeys();
             VssConnection connection = null;
             connection = new VssConnection(new Uri(Security.DevOpsAccount), new VssBasicCredential(string.Empty, Security.PAT));
@@ -75,7 +78,7 @@ namespace CreateWorkItems.Controllers
             {
                 Path = @"/fields/System.Title",            
                 Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
-                Value = Title
+                Value = WI.Title
             });
 
             document.Add(
@@ -83,7 +86,7 @@ namespace CreateWorkItems.Controllers
             {
                 Path = @"/fields/System.AssignedTo",
                 Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
-                Value = AssignedTo
+                Value = WI.AssignedTo
             });
 
             document.Add(
@@ -91,13 +94,12 @@ namespace CreateWorkItems.Controllers
             {
                 Path = @"/fields/System.Description",
                 Operation = Microsoft.VisualStudio.Services.WebApi.Patch.Operation.Add,
-                Value = Description
+                Value = WI.Description
             });
 
-            //var worktime = witClient.CreateWorkItemAsync(document, "ETR - Enterprise Tech Refresh", "Task").Result;
-            var worktime = witClient.CreateWorkItemAsync(document, ProjectName, "Task").Result;
+            var worktime = witClient.CreateWorkItemAsync(document, WI.ProjectName, "Task").Result;
 
-            return "Work Item Created!";
+            return StatusCode(StatusCodes.Status201Created, "Work Item with Id " + worktime.Id + " created sucessfully!");
         }
 
         // GET api/values/5
@@ -107,11 +109,11 @@ namespace CreateWorkItems.Controllers
             return "value";
         }
 
-        // POST api/values
-        [HttpPost]
-        public void Post([FromBody] string value)
-        {
-        }
+        //// POST api/values
+        //[HttpPost]
+        //public void Post([FromBody] string value)
+        //{
+        //}
 
         // PUT api/values/5
         [HttpPut("{id}")]

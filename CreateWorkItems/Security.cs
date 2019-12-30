@@ -18,8 +18,8 @@ namespace CreateWorkItems
         public static async Task GetSecretKeys()
         {
             PAT = "Your application description page.";
-            int retries = 0;
-            bool retry = false;
+            //int retries = 0;
+            //bool retry = false;
             try
             {
                 /* The next four lines of code show you how to use AppAuthentication library to fetch secrets from your key vault */

@@ -25,6 +25,8 @@ namespace CreateWorkItems
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services.AddMvc().AddXmlSerializerFormatters();
+            services.AddResponseCaching();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -34,8 +36,9 @@ namespace CreateWorkItems
             {
                 app.UseDeveloperExceptionPage();
             }
+            app.UseResponseCaching();
             app.UseHttpsRedirection();
-
+            
 
             app.UseMvc();
         }
